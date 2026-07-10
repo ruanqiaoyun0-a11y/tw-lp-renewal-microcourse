@@ -580,14 +580,33 @@ const courseData = {
     </div>
     <div class="card">
       <div class="card-title">考核场景</div>
-      <p>你作为豌豆 LP，为一位 S2 学员家长进行续费沟通。家长此前反馈过「孩子作业比较忙」，但认可孩子上课表现。</p>
-      <p>请写一段完整的话术（300–500 字），需覆盖以下环节：</p>
+      <p>你作为 CC，需要为体验课「<strong>S4-魔法水源</strong>」的中国台湾海外学员家长进行课前首通电话沟通。学员与课堂信息如下：</p>
+      <div class="info-table" style="margin:12px 0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:#fff;">
+        <div style="display:grid;grid-template-columns:120px 1fr;align-items:center;border-bottom:1px solid var(--border);">
+          <div style="padding:10px 14px;background:#f8fafc;font-weight:600;">体验课</div>
+          <div style="padding:10px 14px;">S4-魔法水源</div>
+        </div>
+        <div style="display:grid;grid-template-columns:120px 1fr;align-items:center;border-bottom:1px solid var(--border);">
+          <div style="padding:10px 14px;background:#f8fafc;font-weight:600;">课堂人数</div>
+          <div style="padding:10px 14px;">3人</div>
+        </div>
+        <div style="display:grid;grid-template-columns:120px 1fr 1fr;align-items:center;border-bottom:1px solid var(--border);">
+          <div style="padding:10px 14px;background:#f8fafc;font-weight:600;">姓名</div>
+          <div style="padding:10px 14px;border-right:1px solid var(--border);">暖暖</div>
+          <div style="padding:10px 14px;"><b>性别：</b>女　<b>年龄：</b>6岁10个月　<b>年级：</b>一年级</div>
+        </div>
+        <div style="display:grid;grid-template-columns:120px 1fr;align-items:center;">
+          <div style="padding:10px 14px;background:#f8fafc;font-weight:600;">课前信息</div>
+          <div style="padding:10px 14px;">性格外向，有在上画画班，数感一般，50以内的加减法还不会</div>
+        </div>
+      </div>
+      <p>请结合以上背景，写一段完整的话术（300–500 字），需覆盖以下环节：</p>
       <ul style="padding-left:20px;line-height:2;">
-        <li>学情反馈 + 效果外化</li>
-        <li>课程规划（S2/S3 衔接、九阶体系）</li>
-        <li>课包方案推荐（长期/短期试探）</li>
-        <li>推单逼单（紧迫性/重要性）</li>
-        <li>异议处理 / 价值塑造</li>
+        <li>开场白 + 身份说明 + 提问授权</li>
+        <li>拒绝处理（如「孩子很忙/不需要/再考虑」）</li>
+        <li>挖需：结合暖暖的年龄、年级、画画班、数感与 50 以内加减法情况</li>
+        <li>介绍 S4-魔法水源课程与课堂形式</li>
+        <li>确认上课时间、设备与加 Line</li>
       </ul>
     </div>
     <div class="card final-task-container" id="finalTaskContainer">
@@ -1012,17 +1031,17 @@ if (!text) { showToast('请输入你的考核话术', 'warning'); return; }
 if (finalTaskSubmitted) return;
 
 const dim1Items = [
-  { name: '学情反馈', terms: ['专题','学习','进步','外化','效果','老师反馈','孩子','掌握'] },
-  { name: '课程规划', terms: ['规划','S2','S3','九阶','体系','国小','衔接','基础','阶段'] },
-  { name: '方案推荐', terms: ['课包','方案','课时','S2结束','S3结束','长期','短期','选择'] },
-  { name: '推单收单', terms: ['优惠','现在','确定','报名','链接','截图','缴费','登记'] }
+  { name: '开场与身份', terms: ['老师','顾问','VIP','THINK','豌豆','体验课','魔法水源','S4','对接','身份'] },
+  { name: '提问授权', terms: ['方便','授权','提问','了解','确认','基本情况','家长','您'] },
+  { name: '挖需与介绍', terms: ['需求','年龄','年级','性格','动机','暖暖','6岁','一年级','画画','数感','加减法','50以内','产品','课程','思维','基础'] },
+  { name: '收尾与加Line', terms: ['时间','设备','平板','笔电','手机','Line','微信','加','确认','结束','再见','提醒'] }
 ];
 
 const dim2Items = [
-  { name: '共情理解', terms: ['理解','知道','担心','感受','明白','顾虑','确实'], weight: 20 },
-  { name: '价值塑造', terms: ['重要性','紧迫性','唯一性','思维','能力','长期','未来','AI'], weight: 25 },
-  { name: '具体方案', terms: ['方案','课包','课时','价格','单价','总价','赠品','优惠'], weight: 25 },
-  { name: '闭环承诺', terms: ['跟进','反馈','服务','登记','兑换','确认','安排'], weight: 20 }
+  { name: '拒绝处理', terms: ['拒绝','忙','没时间','不需要','考虑','再说','免费','测评','试听','值','效果'], weight: 25 },
+  { name: '价值塑造', terms: ['重要性','兴趣','逻辑','思维','成长','培养','针对性','循序渐进','适应'], weight: 25 },
+  { name: '案例共情', terms: ['理解','知道','担心','感受','明白','顾虑','孩子','小朋友','画画','外向','数感'], weight: 25 },
+  { name: '闭环承诺', terms: ['跟进','反馈','服务','安排','确认','联系','回复','之后','稍后','持续'], weight: 25 }
 ];
 
 function fluencyScore(len) {
@@ -1061,7 +1080,7 @@ panel.innerHTML = `
   <div class="highlight-box ${finalScore >= 60 ? 'success' : 'warning'}" style="margin-top:20px;">
     <p><strong>${finalScore >= 60 ? '✅ 已通过终极考核' : '❌ 未通过，建议回到对应章节复习后再试'}</strong></p>
     <p style="margin-top:8px;font-size:13px;">维度反馈：流程规范性 ${d1} 分、说服力 ${d2} 分、流畅度 ${d3} 分。</p>
-    <p style="margin-top:8px;font-size:13px;">💡 提升建议：确保话术完整覆盖「学情反馈→课程规划→方案推荐→推单收单」，并用具体数字、优惠时效和价值塑造增强说服力。</p>
+    <p style="margin-top:8px;font-size:13px;">💡 提升建议：确保话术完整覆盖「开场白→提问授权→拒绝处理→挖需（结合暖暖情况）→介绍S4-魔法水源→确认时间/设备/加Line→收尾」，并针对6岁10个月、数感一般、50以内加减法还不会的特点做具体引导。</p>
   </div>
 `;
 
