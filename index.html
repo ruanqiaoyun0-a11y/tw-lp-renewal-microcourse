@@ -1268,6 +1268,7 @@ function applyLoadedState() {
     }
   });
 
+  const dialogueTexts = { dialogue1: dialogue1Text, dialogue2: dialogue2Text, dialogue3: dialogue3Text };
   const dialogues = [
     { id: 'dialogue1', answered: dialogue1Answered, score: dialogue1Score },
     { id: 'dialogue2', answered: dialogue2Answered, score: dialogue2Score },
@@ -1275,15 +1276,33 @@ function applyLoadedState() {
   ];
   dialogues.forEach(d => {
     if (!d.answered) return;
-    const input = document.getElementById('dialogueInput');
-    const btn = document.getElementById('submitDialogueBtn');
+    const quiz = quizzes[d.id];
     const panel = document.getElementById('dialogueFeedback');
-    if (input) input.disabled = true;
-    if (btn) btn.disabled = true;
     if (!panel) return;
     panel.style.display = 'block';
+    // 重新计算命中维度（不锁定输入框/按钮，允许修改后重交）
+    const text = (dialogueTexts[d.id] || '').trim();
+    let found = [], missing = [];
+    if (quiz && text) {
+      quiz.expectedKeywords.forEach(k => {
+        const hit = k.terms.some(t => text.toLowerCase().includes(t.toLowerCase()));
+        if (hit) found.push(k.concept); else missing.push(k.concept);
+      });
+    }
     const level = d.score >= 80 ? 'high' : d.score >= 60 ? 'medium' : 'low';
-    panel.innerHTML = `<div class="score-display"><div class="score-circle ${level}">${d.score}</div></div><p style="text-align:center;font-weight:700;">已提交，${d.score >= 60 ? '✅ 通过' : '❌ 未通过'}</p>`;
+    const foundTags = found.map(c => `<span class="keyword-tag found">${c}</span>`).join('') || '<span class="keyword-tag missing">暂未命中</span>';
+    const missingTags = missing.map(c => `<span class="keyword-tag missing">${c}</span>`).join('') || '<span class="keyword-tag found">全部覆盖</span>';
+    panel.innerHTML = `
+      <div class="score-display"><div class="score-circle ${level}">${d.score}</div></div>
+      <p style="text-align:center;font-weight:700;margin:8px 0;">${d.score >= 60 ? '✅ 通过' : '❌ 未通过（需≥60分）'}</p>
+      <p style="margin-top:12px;font-size:13px;"><strong>已覆盖维度：</strong></p>
+      <div class="keywords-result">${foundTags}</div>
+      <p style="margin-top:12px;font-size:13px;"><strong>未覆盖维度：</strong></p>
+      <div class="keywords-result">${missingTags}</div>
+      <div class="highlight-box ${d.score >= 60 ? 'success' : 'warning'}" style="margin-top:16px;">
+        <p style="font-size:13px;">可修改下方话术后重新提交，刷新评分。</p>
+      </div>
+    `;
   });
 
   if (finalTaskSubmitted) {
