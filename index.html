@@ -905,6 +905,7 @@ function renderQuiz(quiz, sectionIndex) {
 }
 
 function selectQuizOption(el, optionIndex, quizId) {
+  const quiz = quizzes[quizId];
   const isCorrect = optionIndex === quiz.correct;
 if (quizId === 'quiz1') { if (quiz1Answered) return; quiz1Answered = true; quiz1Selected = optionIndex; }
 else if (quizId === 'quiz2') { if (quiz2Answered) return; quiz2Answered = true; quiz2Selected = optionIndex; }
