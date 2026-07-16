@@ -751,6 +751,7 @@ let dialogue2Text = '';
 let dialogue3Text = '';
 let finalTaskSubmitted = false;
 let finalScore = 0;
+let finalD1 = 0, finalD2 = 0, finalD3 = 0;
 
 let studySeconds = 0;
 let timerInterval = null;
@@ -1043,13 +1044,31 @@ function setupFinalTaskListener() {
   });
 }
 
+function renderFinalFeedbackHTML(score, d1, d2, d3) {
+  const getLevel = s => s >= 80 ? 'high' : s >= 60 ? 'medium' : 'low';
+  const getVerdict = s => s >= 80 ? '优秀' : s >= 60 ? '通过' : '未通过';
+  return `
+  <div class="score-display"><div class="score-circle ${getLevel(score)}">${score}</div></div>
+  <p style="text-align:center;font-weight:700;font-size:16px;margin:8px 0;">${getVerdict(score)}</p>
+  <div class="eval-dimensions" style="margin-top:16px;">
+    <div class="eval-dim"><h4>流程规范性</h4><div class="stars">${'⭐'.repeat(Math.round(d1/20))}</div><p>${d1}分</p></div>
+    <div class="eval-dim"><h4>说服力</h4><div class="stars">${'⭐'.repeat(Math.round(d2/20))}</div><p>${d2}分</p></div>
+    <div class="eval-dim"><h4>流畅度</h4><div class="stars">${'⭐'.repeat(Math.round(d3/20))}</div><p>${d3}分</p></div>
+  </div>
+  <div class="highlight-box ${score >= 60 ? 'success' : 'warning'}" style="margin-top:20px;">
+    <p><strong>${score >= 60 ? '✅ 已通过终极考核' : '❌ 未通过，建议回到对应章节复习后再试'}</strong></p>
+    <p style="margin-top:8px;font-size:13px;">维度反馈：流程规范性 ${d1} 分、说服力 ${d2} 分、流畅度 ${d3} 分。</p>
+    <p style="margin-top:8px;font-size:13px;">💡 提升建议：确保话术完整覆盖「学情反馈→课程规划→方案推荐→推单收单」，并用具体数字、优惠时效和价值塑造增强说服力。</p>
+  </div>
+`;
+}
+
 function submitFinalTask() {
   const input = document.getElementById('finalTaskInput');
 if (!input) return;
 
 const text = input.value.trim();
 if (!text) { showToast('请输入你的考核话术', 'warning'); return; }
-if (finalTaskSubmitted) return;
 
 const dim1Items = [
   { name: '学情反馈', terms: ['果果','学习','进步','外化','效果','老师反馈','孩子','掌握','作业','出勤'] },
@@ -1082,28 +1101,13 @@ dim2Items.forEach(item => {
   if (item.terms.some(t => text.includes(t))) d2 += item.weight;
 });
 const d3 = fluencyScore(text.length);
+finalD1 = d1; finalD2 = d2; finalD3 = d3;
 finalScore = Math.round((d1 + d2 + d3) / 3);
 finalTaskSubmitted = true;
 
 const panel = document.getElementById('finalFeedback');
 panel.style.display = 'block';
-const getLevel = s => s >= 80 ? 'high' : s >= 60 ? 'medium' : 'low';
-const getVerdict = s => s >= 80 ? '优秀' : s >= 60 ? '通过' : '未通过';
-
-panel.innerHTML = `
-  <div class="score-display"><div class="score-circle ${getLevel(finalScore)}">${finalScore}</div></div>
-  <p style="text-align:center;font-weight:700;font-size:16px;margin:8px 0;">${getVerdict(finalScore)}</p>
-  <div class="eval-dimensions" style="margin-top:16px;">
-    <div class="eval-dim"><h4>流程规范性</h4><div class="stars">${'⭐'.repeat(Math.round(d1/20))}</div><p>${d1}分</p></div>
-    <div class="eval-dim"><h4>说服力</h4><div class="stars">${'⭐'.repeat(Math.round(d2/20))}</div><p>${d2}分</p></div>
-    <div class="eval-dim"><h4>流畅度</h4><div class="stars">${'⭐'.repeat(Math.round(d3/20))}</div><p>${d3}分</p></div>
-  </div>
-  <div class="highlight-box ${finalScore >= 60 ? 'success' : 'warning'}" style="margin-top:20px;">
-    <p><strong>${finalScore >= 60 ? '✅ 已通过终极考核' : '❌ 未通过，建议回到对应章节复习后再试'}</strong></p>
-    <p style="margin-top:8px;font-size:13px;">维度反馈：流程规范性 ${d1} 分、说服力 ${d2} 分、流畅度 ${d3} 分。</p>
-    <p style="margin-top:8px;font-size:13px;">💡 提升建议：确保话术完整覆盖「学情反馈→课程规划→方案推荐→推单收单」，并用具体数字、优惠时效和价值塑造增强说服力。</p>
-  </div>
-`;
+panel.innerHTML = renderFinalFeedbackHTML(finalScore, finalD1, finalD2, finalD3);
 
 input.disabled = true;
 const btn = document.getElementById('finalSubmitBtn');
@@ -1199,7 +1203,7 @@ function saveProgress() {
     quiz1Answered, quiz2Answered, quiz3Answered,
 quiz1Selected, quiz2Selected, quiz3Selected,
 dialogue1Answered, dialogue1Score, dialogue1Text, dialogue2Answered, dialogue2Score, dialogue2Text, dialogue3Answered, dialogue3Score, dialogue3Text,
-finalTaskSubmitted, finalScore
+finalTaskSubmitted, finalScore, finalD1, finalD2, finalD3
   };
   localStorage.setItem(LS_PREFIX + '_progress', JSON.stringify(state));
 }
@@ -1226,8 +1230,12 @@ dialogue3Score = saved.dialogue3Score || 0;
 dialogue3Text = saved.dialogue3Text || '';
 finalTaskSubmitted = saved.finalTaskSubmitted || false;
 finalScore = saved.finalScore || 0;
+finalD1 = saved.finalD1 || 0;
+finalD2 = saved.finalD2 || 0;
+finalD3 = saved.finalD3 || 0;
       updateProgress();
       updateSidebarLocks();
+      applyLoadedState();
     }
   } catch (e) {}
 }
@@ -1279,16 +1287,10 @@ function applyLoadedState() {
   });
 
   if (finalTaskSubmitted) {
-    const input = document.getElementById('finalTaskInput');
-    const btn = document.getElementById('finalSubmitBtn');
     const panel = document.getElementById('finalFeedback');
-    if (input) input.disabled = true;
-    if (btn) btn.disabled = true;
     if (panel) {
       panel.style.display = 'block';
-      const getLevel = s => s >= 80 ? 'high' : s >= 60 ? 'medium' : 'low';
-      const getVerdict = s => s >= 80 ? '优秀' : s >= 60 ? '通过' : '未通过';
-      panel.innerHTML = `<div class="score-display"><div class="score-circle ${getLevel(finalScore)}">${finalScore}</div></div><p style="text-align:center;font-weight:700;">${getVerdict(finalScore)}</p>`;
+      panel.innerHTML = renderFinalFeedbackHTML(finalScore, finalD1, finalD2, finalD3);
     }
   }
 }
