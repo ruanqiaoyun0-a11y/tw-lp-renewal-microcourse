@@ -959,10 +959,27 @@ function renderDialogue(quiz, sectionIndex) {
   `;
 }
 
+// 取得「当前章节」内的对话元素（避免第3/4/5章重复 id 取到错误元素）
+function getDialogueEls() {
+  const section = document.querySelector(`.section[data-section="${currentSection}"]`);
+  if (!section) {
+    return {
+      input: document.getElementById('dialogueInput'),
+      btn: document.getElementById('submitDialogueBtn'),
+      panel: document.getElementById('dialogueFeedback')
+    };
+  }
+  return {
+    input: section.querySelector('#dialogueInput'),
+    btn: section.querySelector('#submitDialogueBtn'),
+    panel: section.querySelector('#dialogueFeedback')
+  };
+}
+
 function submitDialogue() {
   const quizId = courseData.sections[currentSection].quizId;
 const quiz = quizzes[quizId];
-const input = document.getElementById('dialogueInput');
+const { input, btn, panel } = getDialogueEls();
 if (!input || !quiz) return;
 
 const text = input.value.trim();
@@ -991,8 +1008,7 @@ if (quizId === 'dialogue1') { dialogue1Answered = true; dialogue1Score = score; 
 else if (quizId === 'dialogue2') { dialogue2Answered = true; dialogue2Score = score; dialogue2Text = text; }
 else if (quizId === 'dialogue3') { dialogue3Answered = true; dialogue3Score = score; dialogue3Text = text; }
 
-const panel = document.getElementById('dialogueFeedback');
-panel.style.display = 'block';
+if (panel) panel.style.display = 'block';
 let level = score >= 80 ? 'high' : score >= 60 ? 'medium' : 'low';
 const foundTags = found.map(c => `<span class="keyword-tag found">${c}</span>`).join('') || '<span class="keyword-tag missing">暂未命中</span>';
 const missingTags = missing.map(c => `<span class="keyword-tag missing">${c}</span>`).join('') || '<span class="keyword-tag found">全部覆盖</span>';
@@ -1010,7 +1026,6 @@ panel.innerHTML = `
 `;
 
 input.disabled = true;
-const btn = document.getElementById('submitDialogueBtn');
 if (btn) btn.disabled = true;
 
 saveProgress();
@@ -1019,11 +1034,9 @@ updateSidebarLocks();
 
 function resetDialogue() {
   const quizId = courseData.sections[currentSection].quizId;
-const input = document.getElementById('dialogueInput');
+const { input, btn, panel } = getDialogueEls();
 if (input) { input.value = ''; input.disabled = false; }
-const btn = document.getElementById('submitDialogueBtn');
 if (btn) btn.disabled = false;
-const panel = document.getElementById('dialogueFeedback');
 if (panel) { panel.style.display = 'none'; panel.innerHTML = ''; }
 
 if (quizId === 'dialogue1') { dialogue1Answered = false; dialogue1Score = 0; dialogue1Text = ''; }
@@ -1140,7 +1153,8 @@ updateSidebarLocks();
 function setupQuizListeners() {
   document.addEventListener('keydown', function(e) {
     if (e.ctrlKey && e.key === 'Enter') {
-      const dialogueInput = document.getElementById('dialogueInput');
+      const section = document.querySelector(`.section[data-section="${currentSection}"]`);
+      const dialogueInput = section ? section.querySelector('#dialogueInput') : document.getElementById('dialogueInput');
       if (dialogueInput && document.activeElement === dialogueInput) submitDialogue();
     }
   });
@@ -1277,7 +1291,10 @@ function applyLoadedState() {
   dialogues.forEach(d => {
     if (!d.answered) return;
     const quiz = quizzes[d.id];
-    const panel = document.getElementById('dialogueFeedback');
+    // 作用域到「该对话所属章节」，避免重复 id 取到错误面板
+    const secIdx = courseData.sections.findIndex(s => s.quizId === d.id);
+    const sec = secIdx >= 0 ? document.querySelector(`.section[data-section="${secIdx}"]`) : null;
+    const panel = sec ? sec.querySelector('#dialogueFeedback') : document.getElementById('dialogueFeedback');
     if (!panel) return;
     panel.style.display = 'block';
     // 重新计算命中维度（不锁定输入框/按钮，允许修改后重交）
