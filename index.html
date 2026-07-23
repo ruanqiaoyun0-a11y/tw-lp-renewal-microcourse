@@ -463,6 +463,9 @@ const courseData = {
       </div>
       <p style="margin-top:16px;">豌豆九阶体系（S1–S9）贴合台湾 108 课纲，S2–S3 是幼儿园升国小的衔接关键期，基础打稳才能快速进入思维形成期。</p>
     </div>
+    <div class="highlight-box" style="margin-top:20px;">
+      <p><strong>阶段衔接：</strong>当家长认可孩子的学情反馈、也理解了长期课程规划后，就自然过渡到「我们该报多少课时、怎么报最划算」——下一章我们进入<strong>第三步「提出课包方案」与第四步「推单收单」</strong>，把规划落地成具体的续费方案。</p>
+    </div>
   `
 },
 {
@@ -586,7 +589,7 @@ const courseData = {
         <tr><td style="padding:8px;border:1px solid var(--border);font-weight:700;">学员</td><td style="padding:8px;border:1px solid var(--border);">果果，7岁，女孩，新一年级（九月份升小一），中国台湾</td></tr>
         <tr><td style="padding:8px;border:1px solid var(--border);font-weight:700;">学习负责人</td><td style="padding:8px;border:1px solid var(--border);">妈妈</td></tr>
         <tr><td style="padding:8px;border:1px solid var(--border);font-weight:700;">池子/阶段</td><td style="padding:8px;border:1px solid var(--border);">老生结课期；7月份刚升阶；当前学习 S4 第1讲</td></tr>
-        <tr><td style="padding:8px;border:1px solid var(--border);font-weight:700;">上课时间</td><td style="padding:8px;border:1px solid var(--border);">北京时间每周六日早10点</td></tr>
+        <tr><td style="padding:8px;border:1px solid var(--border);font-weight:700;">上课时间</td><td style="padding:8px;border:1px solid var(--border);">台北时间每周六日早10点</td></tr>
         <tr><td style="padding:8px;border:1px solid var(--border);font-weight:700;">主讲老师</td><td style="padding:8px;border:1px solid var(--border);">小泡芙老师 S4</td></tr>
         <tr><td style="padding:8px;border:1px solid var(--border);font-weight:700;">首次报名课包</td><td style="padding:8px;border:1px solid var(--border);">5888元；45赠5 + 打卡24次</td></tr>
         <tr><td style="padding:8px;border:1px solid var(--border);font-weight:700;">剩余课时</td><td style="padding:8px;border:1px solid var(--border);">10节</td></tr>
@@ -901,8 +904,28 @@ function renderQuiz(quiz, sectionIndex) {
         `).join('')}
       </div>
       <div class="quiz-feedback" id="feedback-${quiz.quizId || sectionIndex}"></div>
+      <div style="margin-top:16px;">
+        <button class="btn btn-outline" onclick="resetQuiz('${quiz.quizId || sectionIndex}')">重新作答</button>
+      </div>
     </div>
   `;
+}
+
+function resetQuiz(quizId) {
+  if (quizId === 'quiz1') { quiz1Answered = false; quiz1Selected = -1; }
+  else if (quizId === 'quiz2') { quiz2Answered = false; quiz2Selected = -1; }
+  else if (quizId === 'quiz3') { quiz3Answered = false; quiz3Selected = -1; }
+
+  const card = document.getElementById('quiz-' + quizId);
+  const feedback = document.getElementById('feedback-' + quizId);
+  if (card) {
+    card.classList.remove('answered-correct', 'answered-wrong');
+    card.querySelectorAll('.quiz-option').forEach(opt => opt.classList.remove('correct', 'wrong', 'selected'));
+  }
+  if (feedback) { feedback.className = 'quiz-feedback'; feedback.innerHTML = ''; }
+
+  saveProgress();
+  updateSidebarLocks();
 }
 
 function selectQuizOption(el, optionIndex, quizId) {
@@ -942,7 +965,7 @@ updateSidebarLocks();
 function renderDialogue(quiz, sectionIndex) {
   if (!quiz || !quiz.isDialogue) return '';
   return `
-    <div class="dialogue-container" id="dialogue-container">
+    <div class="dialogue-container" id="dialogue-container-${sectionIndex}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
         <span style="font-size:24px;">🤖</span>
         <h3 style="font-size:16px;font-weight:700;">互动练习：AI模拟对话</h3>
@@ -992,8 +1015,10 @@ const missing = [];
 
 quiz.expectedKeywords.forEach(k => {
   maxScore += k.weight;
-  const hit = k.terms.some(t => text.toLowerCase().includes(t.toLowerCase()));
-  if (hit) { score += k.weight; found.push(k.concept); }
+  // 按命中词数分段给分：命中 1 词≈60%、2 词≈80%、≥3 词满分，避免只堆一个词就拿满维度分
+  const hitCount = k.terms.filter(t => text.toLowerCase().includes(t.toLowerCase())).length;
+  const ratio = hitCount >= 3 ? 1 : hitCount === 2 ? 0.8 : hitCount === 1 ? 0.6 : 0;
+  if (hitCount > 0) { score += k.weight * ratio; found.push(k.concept); }
   else { missing.push(k.concept); }
 });
 
@@ -1025,8 +1050,14 @@ panel.innerHTML = `
   </div>
 `;
 
-input.disabled = true;
-if (btn) btn.disabled = true;
+// 仅在通过（≥60）时锁定；未通过保留输入框与按钮，方便学员即时修改重交
+if (score >= 60) {
+  input.disabled = true;
+  if (btn) btn.disabled = true;
+} else {
+  input.disabled = false;
+  if (btn) btn.disabled = false;
+}
 
 saveProgress();
 updateSidebarLocks();
@@ -1091,10 +1122,10 @@ const dim1Items = [
 ];
 
 const dim2Items = [
-  { name: '共情理解', terms: ['理解','知道','担心','感受','明白','顾虑','确实','害羞','腼腆','鼓励','关注'], weight: 20 },
+  { name: '共情理解', terms: ['理解','知道','担心','感受','明白','顾虑','确实','害羞','腼腆','鼓励','关注'], weight: 25 },
   { name: '价值塑造', terms: ['重要性','紧迫性','唯一性','思维','能力','长期','未来','AI','大宝','多娃','SVIP','老学员'], weight: 25 },
   { name: '具体方案', terms: ['方案','课包','课时','价格','单价','总价','赠品','优惠','豌豆币','打卡'], weight: 25 },
-  { name: '闭环承诺', terms: ['跟进','反馈','服务','登记','兑换','确认','安排','请假','补课','停课'], weight: 20 }
+  { name: '闭环承诺', terms: ['跟进','反馈','服务','登记','兑换','确认','安排','请假','补课','停课'], weight: 25 }
 ];
 
 function fluencyScore(len) {
@@ -1249,7 +1280,7 @@ finalD2 = saved.finalD2 || 0;
 finalD3 = saved.finalD3 || 0;
       updateProgress();
       updateSidebarLocks();
-      applyLoadedState();
+      // 注意：applyLoadedState() 由 init() 统一调用，避免此处重复渲染
     }
   } catch (e) {}
 }
@@ -1335,11 +1366,19 @@ function applyLoadedState() {
 // 结业证书
 // ============================================================
 function checkCertificate() {
-  let allDone = completedSections.size >= courseData.sections.length;
-  allDone = allDone && quiz1Answered && quiz2Answered && quiz3Answered
-  && dialogue1Answered && dialogue2Answered && dialogue3Answered
-  && finalTaskSubmitted && finalScore >= 60;
-  if (allDone) {
+  // 以「考核是否全部通过」为唯一判定，不再依赖 completedSections 是否点满 7 章
+  const allPassed = quiz1Answered && quiz2Answered && quiz3Answered
+    && dialogue1Answered && dialogue1Score >= 60
+    && dialogue2Answered && dialogue2Score >= 60
+    && dialogue3Answered && dialogue3Score >= 60
+    && finalTaskSubmitted && finalScore >= 60;
+  if (allPassed) {
+    // 考核全通过后，补标所有章节为已完成，保证进度条与侧栏状态一致
+    for (let i = 0; i < courseData.sections.length; i++) completedSections.add(i);
+    updateProgress();
+    saveProgress();
+  }
+  if (allPassed) {
     setTimeout(() => {
       showToast('🏆 恭喜完成全部课程！点击领取结业证书', 'success');
       document.getElementById('certStudentName').textContent = '请填写姓名';
@@ -1356,6 +1395,14 @@ function closeCertificate() {
 }
 
 function printCertificate() {
+  // 打印前校验姓名，避免打出「请填写姓名」的空证书
+  const nameEl = document.getElementById('certStudentName');
+  const name = nameEl ? nameEl.textContent.trim() : '';
+  if (!name || name === '请填写姓名') {
+    showToast('请先填写您的姓名再打印证书', 'warning');
+    if (nameEl) { nameEl.focus(); }
+    return;
+  }
   const cert = document.getElementById('certPaper');
   const win = window.open('', '_blank', 'width=750,height=600');
   win.document.write('<html><head><meta charset="UTF-8"><title>结业证书</title><style>');
