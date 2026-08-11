@@ -102,31 +102,26 @@ const CHAT_SYS = (sc) => `你是台湾教培机构 VIP THINK 的学员家长「�
 - 若 LP 话术到位（开场得体、共情、核对信息、讲清政策/课程体系/课包/权益、化解你的顾虑、给出可落地方案、约定跟进时间与方式），你可逐渐松口、表示愿意配合或想了解；若 LP 生硬、只照念推销、忽略你的顾虑、答非所问或催你，你要提出质疑、敷衍或抛出新的顾虑。
 - 绝不能跳出家长角色，不要给 LP 打分或教学。`;
 
-// 续费电话能力评委：固定 7 维内容评分（加权和 = 100，dims 值 0~1）
-const SCORE_SYS = `你是严格的台湾 VIP THINK 班导（LP）续费电话能力评委。依据下面 7 个维度为班导这通续费电话的表现打分（每个维度给出 0~1 的覆盖度：1=完整覆盖、0.5=部分覆盖、0=未覆盖），返回 JSON：
-{
-  "dims": {
-    "流程规范（五步走完）": <0-1>,
-    "学情反馈质量": <0-1>,
-    "课程规划合理性": <0-1>,
-    "课包方案针对性": <0-1>,
-    "推单促成": <0-1>,
-    "异议处理": <0-1>,
-    "台湾家长亲和度/用语": <0-1>
-  },
-  "total": <0-100 整数，加权和 = 流程15 + 学情15 + 规划12 + 方案13 + 推单15 + 异议15 + 亲和15>,
-  "weak": ["覆盖不足或部分覆盖的维度名"],
-  "comment": "一句话总评与改进建议"
+// 续费电话能力评委：按场景 scoreDims 动态生成维度（每章独立，加权和 = 100，dims 值 0~1）
+function scoreSys(sc) {
+  const dims = (sc && sc.scoreDims) ? sc.scoreDims
+    : [['流程规范（五步走完）', 15, '是否走完五步'], ['学情反馈质量', 15, '学情外化'],
+       ['课程规划合理性', 12, '三阶段+9阶'], ['课包方案针对性', 13, '长短期方案'],
+       ['推单促成', 15, '性价比/理念'], ['异议处理', 15, '四大方向'],
+       ['台湾家长亲和度/用语', 15, '台湾用语']];
+  let json = '{ "dims": {';
+  dims.forEach(function(d, i) {
+    if (i > 0) json += ',';
+    json += '"' + d[0] + '": <0-1>';
+  });
+  json += ' }, "total": <0-100 整数，加权和 = ' + dims.map(function(d){ return d[0] + d[1]; }).join(' + ')
+        + '>, "weak": ["覆盖不足或部分覆盖的维度名"], "comment": "一句话总评与改进建议" }';
+  let desc = '';
+  dims.forEach(function(d) { desc += '- ' + d[0] + '(' + d[1] + ') = ' + d[2] + '；\n'; });
+  return '你是严格的台湾 VIP THINK 班导（LP）续费电话能力评委。依据下面 ' + dims.length
+    + ' 个维度为班导这通续费电话的表现打分（每个维度给出 0~1 的覆盖度：1=完整覆盖、0.5=部分覆盖、0=未覆盖），返回 JSON：\n'
+    + json + '\n只返回 JSON，不要多余解释。\n维度说明：\n' + desc;
 }
-只返回 JSON，不要多余解释。
-维度说明：
-- 流程规范(15) = 是否走完 学情反馈→课程规划→课包方案→推单→异议处理→收尾；
-- 学情反馈质量(15) = 是否用学情三栏（知识+方法/学习习惯/课堂表现）做效果外化、有具体数据；
-- 课程规划合理性(12) = 是否结合思维三阶段+9阶体系、以S2为例话术、总结两个计划；
-- 课包方案针对性(13) = 是否提出长期/短期两个方案、把赠课/VIP币/打卡次数算给家长看、用试探话术引导选择；
-- 推单促成(15) = 是否用逼单话术①性价比（紧迫性）②理念（重要性）、带付话术、约定跟进时间；
-- 异议处理(15) = 是否按"理解共情-挖掘根源-精准破局-理念强化"四大方向处理家长顾虑；
-- 台湾家长亲和度/用语(15) = 是否用台湾用语（国小/课纲/卡支付/LINE等）、生活化比喻、肯定家长付出、不索取隐私、不夸大承诺。`;
 
 // 教练示范（未达 80 分时）
 const COACH_SYS = `你是台湾 VIP THINK 的资深「续费电话培训教练」。学员（LP）在一次家长对练中表现不达标，请针对他的弱项，以 LP 的口吻示范 1–2 段正确回应，要求：
@@ -167,7 +162,7 @@ const server = http.createServer((req, res) => {
       const transcript = body.transcript || '';
       const userMsg = `【学员场景】${(sc && sc.html) || ''}\n【家长人设】${(sc && sc.persona) || ''}\n【家长顾虑】${(sc && sc.objection) || ''}\n\n【班导这通续费电话的逐句实录】\n${transcript}\n\n请按系统指示输出 JSON 评分。`;
       const messages = [
-        { role: 'system', content: SCORE_SYS },
+        { role: 'system', content: scoreSys(sc) },
         { role: 'user', content: userMsg }
       ];
       callMiMo(messages, { temperature: 0.2, top_p: 0.8, max_tokens: 3000 }, (e, data) => {
@@ -175,12 +170,13 @@ const server = http.createServer((req, res) => {
         const text = getMessageText(data, true);
         let parsed = extractJSON(text);
         if (!parsed) return sendJSON(res, 502, { error: 'bad_score', raw: text ? text.slice(0, 800) : '(empty)' });
-        // 加权求和兜底
+        // 加权求和兜底（按场景 scoreDims）
         if (typeof parsed.total !== 'number' && parsed.dims) {
-          const w = { '流程规范（五步走完）': 15, '学情反馈质量': 15, '课程规划合理性': 12,
-                      '课包方案针对性': 13, '推单促成': 15, '异议处理': 15, '台湾家长亲和度/用语': 15 };
+          const dims = (sc && sc.scoreDims) ? sc.scoreDims
+            : [['流程规范（五步走完）', 15], ['学情反馈质量', 15], ['课程规划合理性', 12],
+               ['课包方案针对性', 13], ['推单促成', 15], ['异议处理', 15], ['台湾家长亲和度/用语', 15]];
           let t = 0;
-          Object.keys(w).forEach(k => { t += (Number(parsed.dims[k]) || 0) * w[k]; });
+          dims.forEach(d => { t += (Number(parsed.dims[d[0]]) || 0) * d[1]; });
           parsed.total = Math.round(t);
         }
         if (parsed.dims) {
